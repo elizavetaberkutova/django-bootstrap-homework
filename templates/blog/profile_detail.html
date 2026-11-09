@@ -1,0 +1,55 @@
+
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1 class="page-title">Профіль автора</h1>
+
+<div class="card p-4 mb-4">
+
+    <h3>{{ author.username }}</h3>
+
+    <p>
+        <strong>Дата реєстрації:</strong>
+        {{ author.date_joined|date:"d.m.Y" }}
+    </p>
+
+    {% if author.profile.bio %}
+        <p>{{ author.profile.bio }}</p>
+    {% endif %}
+
+    {% if author.profile.city %}
+        <p>Місто: {{ author.profile.city }}</p>
+    {% endif %}
+
+</div>
+
+<h2>Публікації автора</h2>
+
+{% for post in posts %}
+
+    <div class="post-card mb-4">
+
+        <h3>{{ post.title }}</h3>
+
+        <p>{{ post.content|truncatewords:20 }}</p>
+
+        <a class="btn btn-accent"
+           href="{% url 'blog:post_detail' post.slug %}">
+            Читати далі
+        </a>
+
+    </div>
+
+{% empty %}
+
+    <p>Автор поки не має публікацій.</p>
+
+{% endfor %}
+
+<a href="{% url 'blog:index' %}"
+   class="btn btn-outline-secondary mt-3">
+    ← Назад до блогу
+</a>
+
+{% endblock %}

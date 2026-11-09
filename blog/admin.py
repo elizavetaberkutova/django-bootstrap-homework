@@ -1,6 +1,6 @@
 
 from django.contrib import admin
-from .models import Category, Tag, Post, Profile
+from .models import Category, Tag, Post, Profile, Comment
 
 
 @admin.register(Category)
@@ -32,3 +32,10 @@ class PostAdmin(admin.ModelAdmin):
     list_filter = ('category', 'published_date')
 
     filter_horizontal = ('tags',)
+
+    @admin.register(Comment)
+    class CommentAdmin(admin.ModelAdmin):
+        list_display = ('post', 'author', 'created_at')
+        search_fields = ('text', 'author__username')
+        list_filter = ('created_at',)
+

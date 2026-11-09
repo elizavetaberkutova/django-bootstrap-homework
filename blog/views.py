@@ -1,13 +1,13 @@
-
+from django.contrib.auth import get_user_model
 from django.contrib.auth import login
+from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse
 
 from .forms import PostForm, RegisterForm
-from .models import Post, Category, Tag
-
+from .models import Post, Category, Tag, Comment
+from .models import Post, Category, Tag, Comment
 
 def get_categories():
     categories = list(Category.objects.all())
@@ -19,8 +19,12 @@ def get_categories():
     }
 
 
+# Головна сторінка блогу
 def index(request):
-    posts = Post.objects.all()
+    posts = Post.objects.select_related(
+        'category', 'user'
+    ).prefetch_related('tags')
+
     tags = Tag.objects.all()
 
     category_id = request.GET.get('category', '')
@@ -39,10 +43,8 @@ def index(request):
             Q(content__icontains=query)
         )
 
-    posts = posts.distinct()
-
     context = {
-        'posts': posts,
+        'posts': posts.distinct(),
         'tags': tags,
         'query': query,
         'selected_category': category_id,
@@ -54,11 +56,36 @@ def index(request):
     return render(request, 'blog/index.html', context)
 
 
+# Стара сторінка поста за slug
+
 def get_post(request, post_slug):
     post = get_object_or_404(Post, slug=post_slug)
 
+    if request.method == 'POST':
+        if not request.user.is_authenticated:
+            return redirect('blog:login')
+
+        text = request.POST.get('text', '').strip()
+
+        if text:
+            Comment.objects.create(
+                post=post,
+                author=request.user,
+                text=text
+            )
+
+            return redirect(
+                'blog:post_detail',
+                post_slug=post.slug
+            )
+
+    comments = Comment.objects.filter(
+        post=post
+    ).select_related('author').order_by('-created_at')
+
     context = {
         'post': post,
+        'comments': comments,
         'tags': Tag.objects.all(),
     }
 
@@ -67,6 +94,42 @@ def get_post(request, post_slug):
     return render(request, 'blog/post.html', context)
 
 
+
+# Нова сторінка поста за ID
+def post_detail(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+
+    comments = post.comments.select_related('author').all()
+
+    context = {
+        'post': post,
+        'comments': comments,
+        'tags': Tag.objects.all(),
+    }
+
+    context.update(get_categories())
+
+    return render(request, 'blog/post_detail.html', context)
+
+
+# Профіль автора
+def profile_detail(request, user_id):
+    author = get_object_or_404(User, id=user_id)
+
+    posts = Post.objects.filter(user=author)
+
+    context = {
+        'author': author,
+        'posts': posts,
+        'tags': Tag.objects.all(),
+    }
+
+    context.update(get_categories())
+
+    return render(request, 'blog/profile_detail.html', context)
+
+
+# Контакти
 def contact(request):
     context = {
         'tags': Tag.objects.all(),
@@ -77,6 +140,7 @@ def contact(request):
     return render(request, 'blog/contact.html', context)
 
 
+# Створення публікації
 @login_required(login_url='blog:login')
 def post_create(request):
     if request.method == 'POST':
@@ -99,6 +163,7 @@ def post_create(request):
     )
 
 
+# Редагування публікації
 @login_required(login_url='blog:login')
 def post_update(request, id):
     post = get_object_or_404(
@@ -127,6 +192,7 @@ def post_update(request, id):
     )
 
 
+# Реєстрація користувача
 def register(request):
     if request.user.is_authenticated:
         return redirect('blog:index')
@@ -148,3 +214,25 @@ def register(request):
         {'form': form}
     )
 
+def profile_detail(request, user_id):
+    User = get_user_model()
+
+    author = get_object_or_404(User, id=user_id)
+
+    posts = Post.objects.filter(
+        user=author
+    ).order_by('-published_date')
+
+    context = {
+        'author': author,
+        'posts': posts,
+        'tags': Tag.objects.all(),
+    }
+
+    context.update(get_categories())
+
+    return render(
+        request,
+        'blog/profile_detail.html',
+        context
+    )
