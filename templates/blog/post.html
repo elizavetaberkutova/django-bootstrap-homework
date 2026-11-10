@@ -24,7 +24,7 @@
     </a>
 {% endif %}
 
-<!-- Изображение -->
+<!-- Изображение (необязательно) -->
 {% if post.image %}
     <img src="{{ post.image.url }}"
          alt="{{ post.title }}"
@@ -100,21 +100,28 @@
 
     {% if user.is_authenticated %}
 
-        <form method="post">
+        <form method="post" novalidate>
             {% csrf_token %}
 
             <div class="mb-3">
-                <textarea
-                    name="text"
-                    class="form-control"
-                    rows="3"
-                    placeholder="Напишіть коментар..."
-                    required></textarea>
+                {{ form.text }}
+
+                {% for error in form.text.errors %}
+                    <p class="text-danger mt-2">
+                        {{ error }}
+                    </p>
+                {% endfor %}
+
+                {% for error in form.non_field_errors %}
+                    <p class="text-danger mt-2">
+                        {{ error }}
+                    </p>
+                {% endfor %}
             </div>
 
             <button class="btn btn-accent"
                     type="submit">
-                Надіслати
+                Опублікувати
             </button>
         </form>
 

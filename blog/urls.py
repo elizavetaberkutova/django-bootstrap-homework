@@ -33,6 +33,9 @@ urlpatterns = [
     # Контакти
     path('contact/', views.contact, name='contact'),
 
+# Підписка на новини
+path('subscribe/', views.subscribe, name='subscribe'),
+
     # Створення поста
     path(
         'posts/create/',
